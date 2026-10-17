@@ -1,0 +1,91 @@
+import express, { type Express, type Request } from 'express';
+
+import type { Container } from '../container.js';
+import { WhatsAppController } from './whatsapp.controller.js';
+import { LineController } from './line.controller.js';
+import { ApiController } from './api.controller.js';
+import { errorMiddleware, asyncRoute } from './middleware.js';
+import { ConsoleMessenger } from '../../infrastructure/channels/console-messenger.js';
+import type { DownloadedMedia } from '../../infrastructure/channels/whatsapp-client.js';
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    rawBody?: Buffer;
+  }
+}
+
+/**
+ * HTTP layer for Cloud Run: WhatsApp/LINE webhooks, the public catalog and
+ * the deal-closing API. The raw request body is retained for the LINE
+ * signature check.
+ */
+export function buildApp(container: Container): Express {
+  const app = express();
+
+  app.use(
+    express.json({
+      limit: '1mb',
+      verify: (req: Request, _res, buffer) => {
+        req.rawBody = Buffer.isBuffer(buffer) ? buffer : undefined;
+      },
+    }),
+  );
+
+  app.get('/healthz', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
+  const consoleFallback = new ConsoleMessenger();
+  const whatsappMediaDownloader: ((mediaId: string) => Promise<DownloadedMedia>) | null =
+    container.whatsappClient
+      ? (mediaId: string) => container.whatsappClient!.downloadMedia(mediaId)
+      : null;
+
+  const whatsapp = new WhatsAppController({
+    verifyToken: container.config.whatsapp.verifyToken ?? 'omnilang-verify-token',
+    merchants: container.merchants,
+    catalogProductPhoto: container.catalogProductPhoto,
+    relayChatMessage: container.relayChatMessage,
+    mediaDownloader: whatsappMediaDownloader,
+    replyFallback: (to, text) => consoleFallback.send({ channel: 'whatsapp', to, text }),
+  });
+
+  app.get('/webhooks/whatsapp', (req, res) => whatsapp.verify(req, res));
+  app.post('/webhooks/whatsapp', asyncRoute(async (req, res) => whatsapp.handleEvents(req, res)));
+
+  if (container.lineClient) {
+    const line = new LineController({
+      line: container.lineClient,
+      merchants: container.merchants,
+      catalogProductPhoto: container.catalogProductPhoto,
+      relayChatMessage: container.relayChatMessage,
+      replyFallback: (to, text) => consoleFallback.send({ channel: 'line', to, text }),
+    });
+    app.post('/webhooks/line', asyncRoute(async (req, res) => line.handleEvents(req, res)));
+  } else {
+    app.post('/webhooks/line', (_req, res) => {
+      res.status(404).json({ error: 'LINE channel is not configured on this deployment' });
+    });
+  }
+
+  const api = new ApiController({
+    listings: container.listings,
+    closeDeal: container.closeDeal,
+  });
+
+  app.get(
+    '/catalog/:listingId',
+    asyncRoute(async (req: Request<{ listingId: string }>, res) => api.getListing(req, res)),
+  );
+  app.post(
+    '/api/negotiations/:negotiationId/close-deal',
+    asyncRoute(async (req: Request<{ negotiationId: string }>, res) => api.closeDeal(req, res)),
+  );
+
+  app.use((_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+  app.use(errorMiddleware);
+
+  return app;
+}
