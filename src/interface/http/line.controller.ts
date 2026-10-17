@@ -74,7 +74,6 @@ export class LineController {
       const media = await this.deps.line.downloadContent(message.id);
       await this.deps.catalogProductPhoto.execute({
         merchantId: sender.id,
-        channel: 'line',
         photo: { data: media.data, mimeType: media.mimeType },
         merchantNote: '',
       });

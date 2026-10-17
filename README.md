@@ -45,27 +45,86 @@ The domain and application layers have **zero** framework or cloud dependencies 
 
 Mirrors the Dialogflow CX state machine: `INQUIRY → OFFER ⇄ OFFER → SHIPPING → INVOICED → PAID`, with every relayed turn recorded on the aggregate for context preservation.
 
-## Getting started
+## How to run
 
-Requires Node.js ≥ 22.
+Requires Node.js ≥ 22 (npm ≥ 10).
+
+### 1. Install and verify
 
 ```bash
 npm install --include=dev
-npm run typecheck
-npm test
-npm run build
+npm run typecheck   # strict TS, both src and tests
+npm test            # 51 tests, no cloud credentials needed
+npm run build       # emits dist/
 ```
 
-### Run locally (no cloud credentials)
+### 2. Run locally in demo mode (no cloud credentials)
 
-Demo mode exercises the full flow with deterministic in-process adapters:
+Demo mode wires deterministic in-process adapters for vision, translation,
+media, persistence and payments, so the full product flow runs on your laptop.
+Outbound messages print to the console instead of WhatsApp/LINE.
 
 ```bash
-cp .env.example .env   # then set OMNILANG_DEMO_MODE=true and PORT
+export OMNILANG_DEMO_MODE=true
+export PORT=8080
+export CATALOG_BASE_URL=http://localhost:8080
+export MERCHANTS_JSON='[{"id":"m-001","displayName":"Warung Sari","language":"id","currency":"IDR","channel":"whatsapp","address":"6281234567890"}]'
+
 npm run dev
+# -> [omnilang] listening on :8080 (demo mode, memory persistence)
 ```
 
-Production mode wires the real Google Cloud adapters:
+> `MERCHANTS_JSON` is how shops are onboarded: one config entry per merchant
+> (language, currency, channel, address). Onboarding a new shop is a config
+> change — operational in under a minute.
+
+With the server up, walk the full journey — listing, negotiation, invoice:
+
+```bash
+# health check
+curl -s localhost:8080/healthz
+# {"status":"ok"}
+
+# 1) create a listing from a product photo + colloquial price note
+#    (any base64 image works in demo mode; the note drives the demo analysis)
+curl -s -X POST localhost:8080/api/merchants/m-001/listings \
+  -H 'content-type: application/json' \
+  -d '{"imageBase64":"<base64-image>","note":"Ini batik tulis Pekalongan, mau jual 150.000 per lembar"}'
+# -> 201 { "id": "...", "title": "Hand-Dyed Batik Textile Art (Pekalongan Style)",
+#          "basePrice": { "amount": 150000, "currency": "IDR" }, ... }
+# console shows the preview sent to the merchant incl. USD/JPY/SGD conversions
+
+# 2) simulate a Tokyo buyer messaging the merchant's WhatsApp number
+curl -s -X POST localhost:8080/webhooks/whatsapp \
+  -H 'content-type: application/json' \
+  -d '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"metadata":{"display_phone_number":"6281234567890"},"messages":[{"from":"819012345678","type":"text","text":{"body":"5個購入希望です。東京までの送料は？"}}]}}]}]}'
+# -> 200; console shows the inquiry translated into the merchant's dialect
+
+# 3) inspect the merchant's open negotiations
+curl -s localhost:8080/api/merchants/m-001/negotiations
+# -> [{ "id": "<negotiationId>", "stage": "INQUIRY", "buyerLanguage": "ja", ... }]
+
+# 4) close the deal: quantity, unit price, shipping
+curl -s -X POST localhost:8080/api/negotiations/<negotiationId>/close-deal \
+  -H 'content-type: application/json' \
+  -d '{"quantity":5,"unitPriceAmount":75000,"unitPriceCurrency":"IDR","shippingCostAmount":120000}'
+# -> 201 { "total": { "amount": 495000, "currency": "IDR" }, "paymentUrl": "..." }
+# console shows the invoice summary translated to Japanese (buyer)
+# and to Bahasa (merchant), each with the payment link
+
+# fetch any published listing
+curl -s localhost:8080/catalog/<listingId>
+```
+
+### 3. Run against real Google Cloud (production mode)
+
+```bash
+npm run build
+npm start
+```
+
+The runtime adapters are selected by environment variables (see `.env.example`
+for the full list):
 
 | Concern | Adapter | Configuration |
 |---|---|---|
@@ -77,12 +136,11 @@ Production mode wires the real Google Cloud adapters:
 | LINE | Messaging API | `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET` |
 | Payments | Generic invoice gateway | `PAYMENTS_API_URL` |
 
-See `.env.example` for the full list, including merchant onboarding via `MERCHANTS_JSON`.
-
-> Firestore composite indexes required for `findActiveByBuyer`/`findActiveByMerchant`:
-> `(channel ASC, buyerAddress ASC, stage ASC, updatedAt DESC)` and
-> `(channel ASC, merchantAddress ASC, stage ASC, updatedAt DESC)`.
-> The `stage IN (...)` query uses these with an equality-only `where` — deploy via `firestore.indexes.json` if enabling Firestore mode.
+> Firestore composite indexes required:
+> `(channel ASC, buyerAddress ASC, stage ASC, updatedAt DESC)`,
+> `(channel ASC, merchantAddress ASC, stage ASC, updatedAt DESC)` and
+> `(merchantId ASC, updatedAt DESC)` — deploy via `firestore.indexes.json`
+> when enabling Firestore mode.
 
 ## HTTP surface
 
@@ -93,6 +151,8 @@ See `.env.example` for the full list, including merchant onboarding via `MERCHAN
 | POST | `/webhooks/whatsapp` | Inbound WhatsApp messages (photos + text) |
 | POST | `/webhooks/line` | Inbound LINE messages (HMAC-verified) |
 | GET | `/catalog/:listingId` | Public listing JSON |
+| POST | `/api/merchants/:merchantId/listings` | Photo-to-catalog (API entry, e.g. dashboards/bulk tools) |
+| GET | `/api/merchants/:merchantId/negotiations` | Negotiation summaries for the merchant |
 | POST | `/api/negotiations/:negotiationId/close-deal` | Freeze a deal, issue the invoice |
 
 ```jsonc
@@ -108,7 +168,7 @@ See `.env.example` for the full list, including merchant onboarding via `MERCHAN
 
 ## Testing
 
-49 tests across three levels, all runnable without cloud credentials:
+51 tests across three levels, all runnable without cloud credentials:
 
 ```bash
 npm test
@@ -116,7 +176,7 @@ npm test
 
 - **Domain** — Money arithmetic/conversion, colloquial price-hint parsing (`75rb`, `Rp 150.000`, `5k` vs. quantity chatter), negotiation state machine, order invariants, listing validation, snapshot round-trips.
 - **Application** — the three use cases against in-memory fakes: photo → published listing with USD/JPY/SGD snapshot, missing-price guidance, dialect relay with turn recording, deal closing with bilingual notifications.
-- **Interface** — the full HTTP stack in demo mode: webhook handshake, buyer negotiation open, end-to-end close-deal, error mapping (400/404).
+- **Interface** — the full HTTP stack in demo mode: webhook handshake, listing creation via the merchant API, buyer negotiation open, end-to-end close-deal, error mapping (400/404).
 
 ## Deploying to Cloud Run
 

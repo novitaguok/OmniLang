@@ -8,4 +8,6 @@ export interface NegotiationRepository {
   findActiveByBuyer(channel: Channel, buyerAddress: string): Promise<Negotiation | null>;
   /** Most recently updated active negotiation involving a given merchant. */
   findActiveByMerchant(channel: Channel, merchantAddress: string): Promise<Negotiation | null>;
+  /** All negotiations for a merchant, most recently updated first. */
+  listNegotiationsByMerchant(merchantId: string): Promise<readonly Negotiation[]>;
 }

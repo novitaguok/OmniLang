@@ -115,6 +115,46 @@ describe('HTTP interface (demo mode)', () => {
     expect(order.invoiceId).toMatch(/^demo-inv-/);
   });
 
+  it('creates a listing via the merchant API and lists it in the catalog', async () => {
+    const created = await fetch(`${baseUrl}/api/merchants/m-001/listings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: Buffer.from('fake-jpeg').toString('base64'),
+        note: 'Batik tulis Pekalongan, 150.000 per lembar',
+      }),
+    });
+    expect(created.status).toBe(201);
+
+    const listing = (await created.json()) as { id: string; title: string; status: string };
+    expect(listing.status).toBe('published');
+    expect(listing.title).toContain('Batik');
+
+    const fetched = await fetch(`${baseUrl}/catalog/${listing.id}`);
+    expect(fetched.status).toBe(200);
+    await expect(fetched.json()).resolves.toMatchObject({ id: listing.id });
+  });
+
+  it('lists a merchant negotiations with stage and turn count', async () => {
+    await fetch(`${baseUrl}/webhooks/whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(whatsappEvent('8190111222333', 'Hello, is this still available?')),
+    });
+
+    const response = await fetch(`${baseUrl}/api/merchants/m-001/negotiations`);
+    expect(response.status).toBe(200);
+
+    const negotiations = (await response.json()) as Array<{
+      stage: string;
+      turns: number;
+      buyerLanguage: string;
+    }>;
+    const inquiry = negotiations.find((entry) => entry.turns === 1 && entry.stage === 'INQUIRY');
+    expect(inquiry).toBeDefined();
+    expect(inquiry!.buyerLanguage).toBe('en');
+  });
+
   it('rejects invalid close-deal payloads with 400', async () => {
     const response = await fetch(`${baseUrl}/api/negotiations/does-not-matter/close-deal`, {
       method: 'POST',

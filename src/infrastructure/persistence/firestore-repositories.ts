@@ -89,4 +89,13 @@ export class FirestoreRepositories implements ListingRepository, NegotiationRepo
     const doc = snapshot.docs[0];
     return doc ? Negotiation.fromSnapshot(doc.data()) : null;
   }
+
+  async listNegotiationsByMerchant(merchantId: string): Promise<readonly Negotiation[]> {
+    const snapshot = await this.db
+      .collection(NEGOTIATIONS)
+      .where('merchantId', '==', merchantId)
+      .orderBy('updatedAt', 'desc')
+      .get();
+    return snapshot.docs.map((doc) => Negotiation.fromSnapshot(doc.data()));
+  }
 }

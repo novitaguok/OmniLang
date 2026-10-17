@@ -4,7 +4,6 @@ import { Listing } from '../../domain/entities/listing.js';
 import { Money } from '../../domain/value-objects/money.js';
 import { parsePriceHint } from '../../domain/services/price-hint.js';
 import type { CurrencyCode } from '../../domain/value-objects/money.js';
-import type { Channel } from '../../domain/value-objects/channel.js';
 import { MerchantNotFoundError } from '../errors.js';
 import type { MerchantDirectory } from '../ports/merchant-directory.js';
 import type { ExchangeRateProvider } from '../ports/exchange-rate-provider.js';
@@ -18,7 +17,6 @@ const TARGET_CONVERSION_CURRENCIES: readonly CurrencyCode[] = ['USD', 'JPY', 'SG
 
 export interface CatalogProductPhotoInput {
   readonly merchantId: string;
-  readonly channel: Channel;
   readonly photo: ProductPhotoInput;
   /** Free-text note accompanying the photo, e.g. "Ini keranjang rotan asli, mau jual 75rb per buah". */
   readonly merchantNote: string;
@@ -61,7 +59,7 @@ export class CatalogProductPhotoUseCase {
     const priceAmount = parsePriceHint(input.merchantNote);
     if (priceAmount === null) {
       await this.deps.messenger.send({
-        channel: input.channel,
+        channel: merchant.channel,
         to: merchant.channelAddress,
         text:
           'Received your photo! One thing is missing: the price. ' +
@@ -111,7 +109,7 @@ export class CatalogProductPhotoUseCase {
       `Share your listing: ${this.deps.catalogBaseUrl}/p/${listing.id}`;
 
     await this.deps.messenger.send({
-      channel: input.channel,
+      channel: merchant.channel,
       to: merchant.channelAddress,
       text: preview,
     });

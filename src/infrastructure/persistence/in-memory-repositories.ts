@@ -83,6 +83,13 @@ export class InMemoryRepositories implements ListingRepository, NegotiationRepos
     return matches[0] ?? null;
   }
 
+  async listNegotiationsByMerchant(merchantId: string): Promise<readonly Negotiation[]> {
+    return [...this.negotiationStore.values()]
+      .map((entry) => Negotiation.fromSnapshot(entry.snapshot))
+      .filter((negotiation) => negotiation.merchantId === merchantId)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
   /** Test/demo helper: reset all stores. */
   clear(): void {
     this.listingStore.clear();

@@ -38,7 +38,6 @@ describe('CatalogProductPhotoUseCase', () => {
 
     const listing = await useCase.execute({
       merchantId: 'm-001',
-      channel: 'whatsapp',
       photo: PHOTO,
       merchantNote: 'Ini keranjang rotan asli, mau jual 75rb per buah',
     });
@@ -65,7 +64,6 @@ describe('CatalogProductPhotoUseCase', () => {
 
     const listing = await useCase.execute({
       merchantId: 'm-001',
-      channel: 'whatsapp',
       photo: PHOTO,
       merchantNote: 'ini keranjang buatan saya',
     });
@@ -78,7 +76,7 @@ describe('CatalogProductPhotoUseCase', () => {
   it('throws for an unknown merchant', async () => {
     const { useCase } = makeUseCase(false);
     await expect(
-      useCase.execute({ merchantId: 'ghost', channel: 'whatsapp', photo: PHOTO, merchantNote: '75rb' }),
+      useCase.execute({ merchantId: 'ghost', photo: PHOTO, merchantNote: '75rb' }),
     ).rejects.toThrow(MerchantNotFoundError);
   });
 });

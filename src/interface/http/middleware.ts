@@ -58,3 +58,9 @@ export const closeDealBodySchema = z.object({
   unitPriceCurrency: z.string().min(3).max(3),
   shippingCostAmount: z.number().int().nonnegative(),
 });
+
+export const createListingBodySchema = z.object({
+  imageBase64: z.string().min(1),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']).optional(),
+  note: z.string().default(''),
+});

@@ -70,12 +70,22 @@ export function buildApp(container: Container): Express {
 
   const api = new ApiController({
     listings: container.listings,
+    negotiations: container.negotiations,
     closeDeal: container.closeDeal,
+    catalogProductPhoto: container.catalogProductPhoto,
   });
 
   app.get(
     '/catalog/:listingId',
     asyncRoute(async (req: Request<{ listingId: string }>, res) => api.getListing(req, res)),
+  );
+  app.post(
+    '/api/merchants/:merchantId/listings',
+    asyncRoute(async (req: Request<{ merchantId: string }>, res) => api.createListing(req, res)),
+  );
+  app.get(
+    '/api/merchants/:merchantId/negotiations',
+    asyncRoute(async (req: Request<{ merchantId: string }>, res) => api.listNegotiations(req, res)),
   );
   app.post(
     '/api/negotiations/:negotiationId/close-deal',

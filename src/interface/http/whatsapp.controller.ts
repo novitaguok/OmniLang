@@ -110,7 +110,6 @@ export class WhatsAppController {
         const media = await this.deps.mediaDownloader(message.image.id);
         await this.deps.catalogProductPhoto.execute({
           merchantId: sender.id,
-          channel: 'whatsapp',
           photo: { data: media.data, mimeType: media.mimeType },
           merchantNote: message.image.caption ?? '',
         });
