@@ -26,3 +26,7 @@ npm-debug.log*
 
 # Local agent state
 .commandcode/
+
+# Demo video & presentation assets
+*.mp4
+demo-autoplay.html

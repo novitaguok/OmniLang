@@ -14,10 +14,19 @@ export class StaticMerchantDirectory implements MerchantDirectory {
 
   constructor(merchantConfigs: readonly MerchantConfig[]) {
     for (const config of merchantConfigs) {
-      const merchant = toDomainMerchant(config);
-      this.byId.set(merchant.id, merchant);
-      this.byChannelAddress.set(`${merchant.channel}:${merchant.channelAddress}`, merchant);
+      this.register(config);
     }
+  }
+
+  register(config: MerchantConfig): Merchant {
+    const merchant = toDomainMerchant(config);
+    this.byId.set(merchant.id, merchant);
+    this.byChannelAddress.set(`${merchant.channel}:${merchant.channelAddress}`, merchant);
+    return merchant;
+  }
+
+  listAll(): readonly Merchant[] {
+    return [...this.byId.values()];
   }
 
   async findById(merchantId: string): Promise<Merchant | null> {

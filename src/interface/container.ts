@@ -43,6 +43,7 @@ export interface Container {
   readonly orders: OrderRepository;
   readonly whatsappClient: WhatsAppClient | null;
   readonly lineClient: LineClient | null;
+  readonly consoleMessenger: ConsoleMessenger;
 }
 
 export function createContainer(config: OmniLangConfig = loadConfig()): Container {
@@ -88,8 +89,9 @@ export function createContainer(config: OmniLangConfig = loadConfig()): Containe
       ? new LineClient(config.line.channelAccessToken, config.line.channelSecret)
       : null;
 
+  const consoleMessenger = new ConsoleMessenger();
   const messenger =
-    whatsappClient || lineClient ? new MultiChannelMessenger(whatsappClient, lineClient) : new ConsoleMessenger();
+    whatsappClient || lineClient ? new MultiChannelMessenger(whatsappClient, lineClient) : consoleMessenger;
 
   const exchangeRates = new ConfiguredExchangeRateProvider(config.fxRates);
 
@@ -125,5 +127,6 @@ export function createContainer(config: OmniLangConfig = loadConfig()): Containe
     orders: repositories,
     whatsappClient,
     lineClient,
+    consoleMessenger,
   };
 }

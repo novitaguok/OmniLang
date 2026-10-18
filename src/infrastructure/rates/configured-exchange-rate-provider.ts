@@ -12,12 +12,17 @@ export class ConfiguredExchangeRateProvider implements ExchangeRateProvider {
 
   async getRates(base: CurrencyCode): Promise<ReadonlyMap<CurrencyCode, number>> {
     const rates = new Map<CurrencyCode, number>();
-    if (base === 'IDR') {
-      for (const currency of SUPPORTED_CURRENCIES) {
-        const rate = this.rates[currency];
-        if (typeof rate === 'number' && rate > 0) {
-          rates.set(currency, rate);
-        }
+    const baseRate = base === 'IDR' ? 1 : this.rates[base];
+    if (typeof baseRate !== 'number' || baseRate <= 0) {
+      return rates;
+    }
+    for (const currency of SUPPORTED_CURRENCIES) {
+      if (currency === base) {
+        continue;
+      }
+      const targetRate = currency === 'IDR' ? 1 : this.rates[currency];
+      if (typeof targetRate === 'number' && targetRate > 0) {
+        rates.set(currency, targetRate / baseRate);
       }
     }
     return rates;

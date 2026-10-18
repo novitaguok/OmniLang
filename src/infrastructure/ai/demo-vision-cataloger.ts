@@ -24,6 +24,37 @@ export class DemoVisionCataloger implements VisionCataloger {
         estimatedDimensions: 'Approx. 100 cm × 100 cm',
       };
     }
+
+    const noteMentionsInabel = /inabel|abel|banig|kumot|hablon|ilocos|pilipinas/i.test(merchantNote);
+    if (noteMentionsInabel) {
+      return {
+        title: 'Handwoven Ilocos Inabel Cotton Blanket (Binakul Geometric Weave)',
+        description:
+          'Heirloom-quality Inabel cotton throw handwoven on traditional wooden pedal looms in Ilocos, Philippines. Features hypnotic Binakul optical-illusion patterns prized by interior designers worldwide.',
+        tags: ['inabel', 'philippines', 'handwoven', 'binakul', 'artisan', 'textile', 'homedecor'],
+        materials: ['100% hand-spun cotton', 'natural indigo dye'],
+        colors: ['ocean blue', 'ivory white', 'terracotta'],
+        craftsmanshipNotes: 'Woven on traditional 2-pedal wooden pangablan loom using double-toned warp threads.',
+        careInstructions: 'Gentle cold wash with mild soap; line dry in shade.',
+        estimatedDimensions: 'Approx. 150 cm × 200 cm',
+      };
+    }
+
+    const noteMentionsJaipur = /jaipur|indigo|block|chadar|saree|dupatta|जयपुर|ब्लॉक|साड़ी|दुपट्टा|चादर/i.test(merchantNote);
+    if (noteMentionsJaipur) {
+      return {
+        title: 'Hand-Block Printed Jaipur Indigo Cotton Throw (Natural Vegetable Dye)',
+        description:
+          'Artisanal Sanganeri hand-block printed cotton throw from Jaipur, Rajasthan. Stamped by master karigars using carved teakwood blocks and fermented natural indigo.',
+        tags: ['jaipur', 'blockprint', 'indigo', 'indianartisan', 'handmade', 'sustainable', 'decor'],
+        materials: ['organic mulmul cotton', 'natural indigo', 'madder root dye'],
+        colors: ['deep indigo', 'madder red', 'unbleached cotton'],
+        craftsmanshipNotes: 'Multi-stage Dabu mud-resist and carved teakwood block stamping.',
+        careInstructions: 'Wash separately in cold water; dry away from direct sunlight.',
+        estimatedDimensions: 'Approx. 140 cm × 220 cm',
+      };
+    }
+
     return {
       title: 'Handcrafted Boho Rattan Basket (Organic Natural Finish)',
       description:

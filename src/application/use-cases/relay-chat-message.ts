@@ -78,6 +78,9 @@ export class RelayChatMessageUseCase {
     );
     await this.deps.messenger.send({ channel: input.channel, to: negotiation.buyerAddress, text: translated });
     negotiation.recordTurn('merchant', input.text, translated);
+    if (negotiation.stage === 'INQUIRY' || negotiation.stage === 'OFFER') {
+      negotiation.advanceTo('OFFER');
+    }
     await this.deps.negotiations.save(negotiation);
   }
 
@@ -111,6 +114,8 @@ export class RelayChatMessageUseCase {
         buyerLanguage,
         listingId: input.listingId ?? null,
       });
+    } else if (negotiation.stage === 'OFFER') {
+      negotiation.advanceTo('SHIPPING');
     }
 
     const translated = await this.deps.translator.translate(

@@ -90,6 +90,24 @@ export class InMemoryRepositories implements ListingRepository, NegotiationRepos
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   }
 
+  listAllListings(): readonly Listing[] {
+    return [...this.listingStore.values()]
+      .map((entry) => Listing.fromSnapshot(entry.snapshot))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  listAllNegotiations(): readonly Negotiation[] {
+    return [...this.negotiationStore.values()]
+      .map((entry) => Negotiation.fromSnapshot(entry.snapshot))
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
+  listAllOrders(): readonly Order[] {
+    return [...this.orderStore.values()]
+      .map((entry) => Order.fromSnapshot(entry.snapshot))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
   /** Test/demo helper: reset all stores. */
   clear(): void {
     this.listingStore.clear();

@@ -65,6 +65,14 @@ media, persistence and payments, so the full product flow runs on your laptop.
 Outbound messages print to the console instead of WhatsApp/LINE.
 
 ```bash
+npm run demo
+# -> [omnilang] listening on :8080 (demo mode, memory persistence)
+# -> Open http://localhost:8080/demo for the Interactive 3-Minute Video Demo Studio
+```
+
+Or configure custom environment variables manually:
+
+```bash
 export OMNILANG_DEMO_MODE=true
 export PORT=8080
 export CATALOG_BASE_URL=http://localhost:8080
@@ -76,7 +84,8 @@ npm run dev
 
 > `MERCHANTS_JSON` is how shops are onboarded: one config entry per merchant
 > (language, currency, channel, address). Onboarding a new shop is a config
-> change — operational in under a minute.
+> change — operational in under a minute. In demo mode, 3 JAPAC micro-SMEs
+> (Indonesia `id`, Philippines `tl`, India `hi`) are pre-seeded automatically.
 
 With the server up, walk the full journey — listing, negotiation, invoice:
 

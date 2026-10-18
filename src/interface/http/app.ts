@@ -4,8 +4,8 @@ import type { Container } from '../container.js';
 import { WhatsAppController } from './whatsapp.controller.js';
 import { LineController } from './line.controller.js';
 import { ApiController } from './api.controller.js';
+import { DemoController } from './demo.controller.js';
 import { errorMiddleware, asyncRoute } from './middleware.js';
-import { ConsoleMessenger } from '../../infrastructure/channels/console-messenger.js';
 import type { DownloadedMedia } from '../../infrastructure/channels/whatsapp-client.js';
 
 declare module 'express-serve-static-core' {
@@ -36,6 +36,7 @@ export function buildApp(container: Container): Express {
       name: 'OmniLang SME Commerce Agent',
       status: 'ok',
       version: '0.1.0',
+      demoUrl: '/demo',
     });
   });
 
@@ -43,7 +44,7 @@ export function buildApp(container: Container): Express {
     res.status(200).json({ status: 'ok' });
   });
 
-  const consoleFallback = new ConsoleMessenger();
+  const consoleFallback = container.consoleMessenger;
   const whatsappMediaDownloader: ((mediaId: string) => Promise<DownloadedMedia>) | null =
     container.whatsappClient
       ? (mediaId: string) => container.whatsappClient!.downloadMedia(mediaId)
@@ -98,6 +99,23 @@ export function buildApp(container: Container): Express {
   app.post(
     '/api/negotiations/:negotiationId/close-deal',
     asyncRoute(async (req: Request<{ negotiationId: string }>, res) => api.closeDeal(req, res)),
+  );
+
+  const demo = new DemoController(container);
+  app.get('/demo', (req, res) => demo.serveDemoStudio(req, res));
+  app.get('/api/demo/state', asyncRoute(async (req, res) => demo.getState(req, res)));
+  app.post('/api/demo/reset', asyncRoute(async (req, res) => demo.resetState(req, res)));
+  app.post(
+    '/api/demo/negotiations/:negotiationId/pay',
+    asyncRoute(async (req: Request<{ negotiationId: string }>, res) => demo.markPaid(req, res)),
+  );
+  app.get(
+    '/p/:listingId',
+    asyncRoute(async (req: Request<{ listingId: string }>, res) => demo.servePublicListing(req, res)),
+  );
+  app.get(
+    '/pay/:invoiceId',
+    asyncRoute(async (req: Request<{ invoiceId: string }>, res) => demo.servePaymentCheckout(req, res)),
   );
 
   app.use((_req, res) => {

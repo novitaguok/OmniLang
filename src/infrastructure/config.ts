@@ -56,6 +56,33 @@ const DEFAULT_FX_RATES: Readonly<Record<string, number>> = {
   VND: 0.16,
 };
 
+export const DEFAULT_DEMO_MERCHANTS: readonly MerchantConfig[] = [
+  {
+    id: 'm-001',
+    displayName: 'Warung Sari Batik (Pekalongan)',
+    language: 'id',
+    currency: 'IDR',
+    channel: 'whatsapp',
+    address: '6281234567890',
+  },
+  {
+    id: 'm-002',
+    displayName: 'Tindahan ni Aling Rosa (Ilocos)',
+    language: 'tl',
+    currency: 'PHP',
+    channel: 'whatsapp',
+    address: '639171234567',
+  },
+  {
+    id: 'm-003',
+    displayName: 'Jaipur Kala Studio (Rajasthan)',
+    language: 'hi',
+    currency: 'INR',
+    channel: 'whatsapp',
+    address: '919876543210',
+  },
+];
+
 function parseOptionalJson<T>(raw: string | undefined): T | null {
   if (!raw || !raw.trim()) {
     return null;
@@ -68,14 +95,20 @@ function parseOptionalJson<T>(raw: string | undefined): T | null {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): OmniLangConfig {
-  const merchants = (parseOptionalJson<unknown[]>(env.MERCHANTS_JSON) ?? [])
-    .map((entry) => merchantConfigSchema.parse(entry))
-    .map((entry): MerchantConfig => ({
-      ...entry,
-      language: entry.language as LanguageCode,
-      currency: assertCurrencyCode(entry.currency),
-      channel: entry.channel as Channel,
-    }));
+  const demoMode = env.OMNILANG_DEMO_MODE === 'true';
+  const parsedMerchants = parseOptionalJson<unknown[]>(env.MERCHANTS_JSON);
+  const merchants = parsedMerchants
+    ? parsedMerchants
+        .map((entry) => merchantConfigSchema.parse(entry))
+        .map((entry): MerchantConfig => ({
+          ...entry,
+          language: entry.language as LanguageCode,
+          currency: assertCurrencyCode(entry.currency),
+          channel: entry.channel as Channel,
+        }))
+    : demoMode
+      ? [...DEFAULT_DEMO_MERCHANTS]
+      : [];
 
   const fxRates = parseOptionalJson<Record<string, number>>(env.FX_RATES_JSON) ?? DEFAULT_FX_RATES;
 
