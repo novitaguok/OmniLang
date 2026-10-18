@@ -5,6 +5,7 @@ import { WhatsAppController } from './whatsapp.controller.js';
 import { LineController } from './line.controller.js';
 import { ApiController } from './api.controller.js';
 import { DemoController } from './demo.controller.js';
+import { getOpenApiSpec, renderArchitectureDocsHtml } from './docs-ui.js';
 import { errorMiddleware, asyncRoute } from './middleware.js';
 import type { DownloadedMedia } from '../../infrastructure/channels/whatsapp-client.js';
 
@@ -37,7 +38,19 @@ export function buildApp(container: Container): Express {
       status: 'ok',
       version: '0.1.0',
       demoUrl: '/demo',
+      docsUrl: '/docs/architecture-v1',
+      openApiUrl: '/openapi.json',
     });
+  });
+
+  app.get('/docs/architecture-v1', (_req, res) => {
+    res.status(200).type('html').send(renderArchitectureDocsHtml());
+  });
+  app.get('/docs', (_req, res) => {
+    res.status(200).type('html').send(renderArchitectureDocsHtml());
+  });
+  app.get('/openapi.json', (_req, res) => {
+    res.status(200).json(getOpenApiSpec(container.config.catalogBaseUrl));
   });
 
   app.get('/healthz', (_req, res) => {

@@ -1,0 +1,329 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OmniLang SME Commerce Agent API",
+    "version": "1.0.0",
+    "summary": "Multimodal photo-to-catalog, dialect-aware negotiation bridge, and automated cross-border invoicing for JAPAC micro-SMEs on WhatsApp & LINE.",
+    "contact": {
+      "name": "OmniLang Architecture Team",
+      "url": "https://omnilang.dev/docs/architecture-v1"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://omnilang.dev",
+      "description": "Production Cloud Run Deployment (asia-southeast1)"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Local Development / Demo Mode"
+    }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Cloud Run Liveness & Readiness Probe",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "Container is healthy",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/merchants/{merchantId}/listings": {
+      "post": {
+        "operationId": "createListingFromPhoto",
+        "summary": "Multimodal Photo-to-Catalog Generator (Gemini 2.5 Flash)",
+        "description": "Accepts a raw product photo (base64) and a colloquial dialect note. Extracts price deterministically, runs Gemini 2.5 Flash vision analysis, computes multi-currency conversions (USD/JPY/SGD), publishes the listing, and notifies the merchant on WhatsApp/LINE.",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "merchantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "m-001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "imageBase64": "<base64-encoded-jpeg>",
+                "mimeType": "image/jpeg",
+                "note": "Ini batik tulis Pekalongan asli, mau jual 150.000 per lembar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Listing analyzed, priced, and published to the global catalog",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "263c4610-2c3a-42e2-93dd-cca4e8ac7713",
+                  "merchantId": "m-001",
+                  "status": "published",
+                  "photoUrl": "https://storage.googleapis.com/omnilang-media/m-001/batik.jpg",
+                  "title": "Hand-Dyed Batik Textile Art (Pekalongan Style)",
+                  "description": "A one-of-a-kind batik textile hand-drawn with traditional canting wax-resist techniques.",
+                  "tags": [
+                    "batik",
+                    "handmade",
+                    "textile",
+                    "indonesian",
+                    "art",
+                    "handdyed",
+                    "boho"
+                  ],
+                  "materials": [
+                    "cotton",
+                    "beeswax",
+                    "natural dyes"
+                  ],
+                  "colors": [
+                    "indigo",
+                    "soga brown",
+                    "cream"
+                  ],
+                  "craftsmanshipNotes": "Hand-drawn canting technique; wax-resist dyeing in multiple passes.",
+                  "careInstructions": "Hand wash cold, dry in shade, iron on low with a cloth barrier.",
+                  "estimatedDimensions": "Approx. 100 cm × 100 cm",
+                  "basePrice": {
+                    "amount": 150000,
+                    "currency": "IDR"
+                  },
+                  "priceConversions": [
+                    {
+                      "amount": 10,
+                      "currency": "USD"
+                    },
+                    {
+                      "amount": 1470,
+                      "currency": "JPY"
+                    },
+                    {
+                      "amount": 13,
+                      "currency": "SGD"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Merchant ID not found in directory"
+          },
+          "422": {
+            "description": "No parseable price found in merchant note (merchant prompted on channel)"
+          }
+        }
+      }
+    },
+    "/catalog/{listingId}": {
+      "get": {
+        "operationId": "getListingById",
+        "summary": "Fetch Published Global Catalog Listing JSON",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published listing snapshot"
+          },
+          "404": {
+            "description": "Listing not found"
+          }
+        }
+      }
+    },
+    "/webhooks/whatsapp": {
+      "get": {
+        "operationId": "verifyWhatsAppWebhook",
+        "summary": "Meta WhatsApp Business Webhook Subscription Handshake",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns hub.challenge plain text"
+          },
+          "403": {
+            "description": "Invalid verify token"
+          }
+        }
+      },
+      "post": {
+        "operationId": "handleWhatsAppWebhook",
+        "summary": "Inbound WhatsApp Business Cloud API Events (Photos & Dialect Turns)",
+        "tags": [
+          "Webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "object": "whatsapp_business_account",
+                "entry": [
+                  {
+                    "changes": [
+                      {
+                        "value": {
+                          "metadata": {
+                            "display_phone_number": "6281234567890"
+                          },
+                          "messages": [
+                            {
+                              "from": "819012345678",
+                              "type": "text",
+                              "text": {
+                                "body": "5個購入希望です。東京までの送料は？"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event processed and translated turn dispatched"
+          }
+        }
+      }
+    },
+    "/webhooks/line": {
+      "post": {
+        "operationId": "handleLineWebhook",
+        "summary": "Inbound LINE Messaging API Events (HMAC-SHA256 Verified)",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Events processed"
+          },
+          "401": {
+            "description": "Invalid x-line-signature header"
+          }
+        }
+      }
+    },
+    "/api/merchants/{merchantId}/negotiations": {
+      "get": {
+        "operationId": "listMerchantNegotiations",
+        "summary": "List Active & Closed Dialect Negotiations for a Merchant",
+        "tags": [
+          "Negotiations"
+        ],
+        "parameters": [
+          {
+            "name": "merchantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "m-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Negotiation summaries with Dialogflow CX stage and turn counts"
+          }
+        }
+      }
+    },
+    "/api/negotiations/{negotiationId}/close-deal": {
+      "post": {
+        "operationId": "closeDealAndIssueInvoice",
+        "summary": "Freeze Agreed Terms, Advance State to INVOICED & Issue Bilingual Payment Link",
+        "tags": [
+          "Orders & Payments"
+        ],
+        "parameters": [
+          {
+            "name": "negotiationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "quantity": 5,
+                "unitPriceAmount": 135000,
+                "unitPriceCurrency": "IDR",
+                "shippingCostAmount": 120000
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order placed, invoice attached, and translated receipts sent to buyer & merchant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "orderId": "416bbe70-6b06-4a09-94a1-1ef51ff18597",
+                  "negotiationId": "9f8c2104-112b-4d91-81a0-3c991204812a",
+                  "quantity": 5,
+                  "total": {
+                    "amount": 795000,
+                    "currency": "IDR"
+                  },
+                  "invoiceId": "demo-inv-674e3875-a7ec-4a58-846e-eb5a130c3650",
+                  "paymentUrl": "https://omnilang.dev/pay/demo-inv-674e3875-a7ec-4a58-846e-eb5a130c3650"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or negotiation already closed"
+          },
+          "404": {
+            "description": "Negotiation not found"
+          }
+        }
+      }
+    }
+  }
+}

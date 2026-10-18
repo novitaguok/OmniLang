@@ -5,6 +5,7 @@ import { PassthroughDialectTranslator } from '../../src/infrastructure/translati
 import { ConfiguredExchangeRateProvider } from '../../src/infrastructure/rates/configured-exchange-rate-provider.js';
 import { loadConfig } from '../../src/infrastructure/config.js';
 import { createContainer } from '../../src/interface/container.js';
+import { getOpenApiSpec, renderArchitectureDocsHtml } from '../../src/interface/http/docs-ui.js';
 
 describe('JAPAC Demo Showcase Adapters & Container', () => {
   it('seeds all 3 JAPAC demo merchants (Indonesia, Philippines, India) in demo mode by default', async () => {
@@ -76,4 +77,19 @@ describe('JAPAC Demo Showcase Adapters & Container', () => {
     const inrRates = await fx.getRates('INR');
     expect(inrRates.get('USD')).toBeGreaterThan(0.01);
   });
+
+  it('renders Technical Documentation & API Specs portal HTML and OpenAPI 3.1.0 contract', () => {
+    const html = renderArchitectureDocsHtml();
+    expect(html).toContain('/docs/architecture-v1');
+    expect(html).toContain('Clean Architecture');
+    expect(html).toContain('Latency Benchmarks');
+    expect(html).toContain('Cost Analysis');
+    expect(html).toContain('Comprehensive Setup Guide for Enterprise Merchant Aggregators');
+
+    const spec = getOpenApiSpec('https://omnilang.example.com');
+    expect(spec.openapi).toBe('3.1.0');
+    expect(spec.paths).toHaveProperty('/api/merchants/{merchantId}/listings');
+    expect(spec.paths).toHaveProperty('/api/negotiations/{negotiationId}/close-deal');
+  });
 });
+

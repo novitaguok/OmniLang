@@ -1,0 +1,11 @@
+node_modules
+dist
+tests
+.git
+.github
+.commandcode
+.env*
+*.log
+*.mp4
+docs
+demo-autoplay.html
