@@ -6,7 +6,7 @@ A merchant snaps a product photo and dictates a short note in their own dialect.
 
 ## Features
 
-- **Multimodal Photo Catalog Generator** — Gemini 1.5 Flash inspects the craft (materials, colors, style) from a raw smartphone photo and generates marketplace-ready titles, descriptions, tags, care instructions and estimated dimensions. Colloquial price notes (`"jual 75rb per buah"`) are parsed deterministically and snapshotted into USD/JPY/SGD conversions.
+- **Multimodal Photo Catalog Generator** — Gemini 2.5 Flash inspects the craft (materials, colors, style) from a raw smartphone photo and generates marketplace-ready titles, descriptions, tags, care instructions and estimated dimensions. Colloquial price notes (`"jual 75rb per buah"`) are parsed deterministically and snapshotted into USD/JPY/SGD conversions.
 - **Real-Time Dialect Negotiation Bridge** — bi-directional translation between merchant and buyer languages (Bahasa Indonesia, Tagalog/Filipino, Hindi, Vietnamese, Japanese, English), preserving colloquialisms and commercial intent. Full deal history (turns, agreements, order intent) is retained across turns.
 - **Automated Order Closing & Invoicing** — an accepted chat becomes a digital order with a payment link; both sides receive the confirmation translated into their own language.
 - **Multi-channel** — WhatsApp Business Cloud API and LINE Messaging API webhooks, with signature/verification handling.

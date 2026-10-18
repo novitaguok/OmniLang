@@ -31,6 +31,14 @@ export function buildApp(container: Container): Express {
     }),
   );
 
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      name: 'OmniLang SME Commerce Agent',
+      status: 'ok',
+      version: '0.1.0',
+    });
+  });
+
   app.get('/healthz', (_req, res) => {
     res.status(200).json({ status: 'ok' });
   });

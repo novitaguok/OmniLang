@@ -89,7 +89,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): OmniLangConfig
     demoMode: env.OMNILANG_DEMO_MODE === 'true',
     googleCloud: project ? { project, location: location ?? 'us-central1' } : null,
     gemini: {
-      model: env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash',
+      model: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
       apiKey: env.GEMINI_API_KEY?.trim() || null,
     },
     storageBucket: env.GOOGLE_CLOUD_STORAGE_BUCKET?.trim() || null,
